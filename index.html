@@ -224,9 +224,15 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
   var scaler = document.getElementById('scaler');
   var poster = document.getElementById('poster');
   var stage  = document.getElementById('stage');
+  var lastW = -1, lastH = -1;
   function fit(){
     var vw = window.innerWidth  || document.documentElement.clientWidth;
     var vh = window.innerHeight || document.documentElement.clientHeight;
+    // Only re-fit when the layout viewport actually changes. This keeps native
+    // pinch-to-zoom working (it changes the visual viewport, not these values)
+    // and avoids rebuilding the canvases on every zoom/scroll tick.
+    if (vw === lastW && vh === lastH) return;
+    lastW = vw; lastH = vh;
     var s, designH = 1920;
     if (vw > vh) {
       // COMPUTERS / landscape: show it BIG and clear, scrolling vertically.
@@ -252,14 +258,12 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
     // resize the in-poster matrix to the new height
     if (window.__resizeBg) window.__resizeBg();
   }
+  // Re-fit only on real layout changes — NOT on visualViewport zoom/scroll,
+  // so pinch-to-zoom is left entirely to the browser.
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
   window.addEventListener('load', fit);
   document.addEventListener('DOMContentLoaded', fit);
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', fit);
-    window.visualViewport.addEventListener('scroll', fit);
-  }
   // run now, and again after the mobile browser settles its viewport / fonts
   fit();
   [60, 200, 500, 1000].forEach(function(t){ setTimeout(fit, t); });
