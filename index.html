@@ -22,6 +22,13 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 #bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,transparent 38%,rgba(2,4,6,.82) 100%)}
 #stage{position:relative;z-index:1;overflow:hidden}
 #scaler{position:relative;width:1080px;transform-origin:top left}
+/* iOS/Android: recomputing backdrop-filter blur over the animated matrix every
+   frame chokes mobile GPUs (Safari especially) and can crash/freeze the page.
+   Disable the blur on touch devices — the cards stay readable via their own
+   translucent backgrounds. */
+@media (pointer:coarse){
+  [style*="backdrop-filter"]{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes sweepDown{0%{top:-200px}100%{top:1980px}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -385,8 +392,8 @@ function animate(draw){
       if(n.y<6||n.y>H-6) n.vy*=-1;
       var p=Math.sin(t*0.05+n.x*0.3)*0.5+0.5;
       ctx.beginPath(); ctx.arc(n.x,n.y,n.r+(n.threat?0.6:0),0,7);
-      if(n.threat){ ctx.fillStyle='rgba(255,77,99,'+(0.55+p*0.45)+')'; ctx.shadowColor='rgba(255,60,80,0.9)'; ctx.shadowBlur=8; }
-      else { ctx.fillStyle='rgba(0,229,255,0.85)'; ctx.shadowColor='rgba(0,229,255,0.6)'; ctx.shadowBlur=6; }
+      if(n.threat){ ctx.fillStyle='rgba(255,77,99,'+(0.55+p*0.45)+')'; if(!LOW){ ctx.shadowColor='rgba(255,60,80,0.9)'; ctx.shadowBlur=8; } }
+      else { ctx.fillStyle='rgba(0,229,255,0.85)'; if(!LOW){ ctx.shadowColor='rgba(0,229,255,0.6)'; ctx.shadowBlur=6; } }
       ctx.fill(); ctx.shadowBlur=0;
     }
     t++;
