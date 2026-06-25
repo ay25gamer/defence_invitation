@@ -14,12 +14,13 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#04070A;height:100%}
-body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-y:auto}
+html,body{margin:0;padding:0;background:#04070A;height:100%;overflow-x:hidden;
+  -webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%}
+body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;min-height:100dvh;overflow-y:auto}
 /* full-bleed cyber background that fills the entire viewport on any device */
 #bgFull{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.14;pointer-events:none}
 #bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,transparent 38%,rgba(2,4,6,.82) 100%)}
-#stage{position:relative;z-index:1}
+#stage{position:relative;z-index:1;overflow:hidden}
 #scaler{position:relative;width:1080px;transform-origin:top left}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes sweepDown{0%{top:-200px}100%{top:1980px}}
@@ -224,7 +225,8 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
   var poster = document.getElementById('poster');
   var stage  = document.getElementById('stage');
   function fit(){
-    var vw = window.innerWidth, vh = window.innerHeight;
+    var vw = window.innerWidth  || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
     var s, designH = 1920;
     if (vw > vh) {
       // COMPUTERS / landscape: show it BIG and clear, scrolling vertically.
@@ -252,7 +254,15 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+  window.addEventListener('load', fit);
+  document.addEventListener('DOMContentLoaded', fit);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', fit);
+    window.visualViewport.addEventListener('scroll', fit);
+  }
+  // run now, and again after the mobile browser settles its viewport / fonts
   fit();
+  [60, 200, 500, 1000].forEach(function(t){ setTimeout(fit, t); });
 })();
 
 // ---- full-bleed matrix background covering the whole viewport (all devices) ----
