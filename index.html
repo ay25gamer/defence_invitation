@@ -20,7 +20,7 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 #bgFull{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.14;pointer-events:none}
 #bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,transparent 38%,rgba(2,4,6,.82) 100%)}
 #stage{position:relative;z-index:1}
-#scaler{position:relative;width:1080px;height:1920px;transform-origin:top left}
+#scaler{position:relative;width:1080px;transform-origin:top left}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes sweepDown{0%{top:-200px}100%{top:1980px}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -34,9 +34,9 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 <div id="bgVignette"></div>
 <div id="stage">
 <div id="scaler">
-<div style="width:1080px;height:1920px;position:relative;background:#04070A;overflow:hidden;font-family:'Chakra Petch',sans-serif;color:#EAFBFF">
+<div id="poster" style="width:1080px;height:1920px;position:relative;background:#04070A;overflow:hidden;font-family:'Chakra Petch',sans-serif;color:#EAFBFF">
 
-  <canvas id="bgCanvas" style="position:absolute;inset:0;width:1080px;height:1920px;opacity:.17;pointer-events:none;z-index:0"></canvas>
+  <canvas id="bgCanvas" style="position:absolute;inset:0;width:1080px;height:100%;opacity:.17;pointer-events:none;z-index:0"></canvas>
 
   <div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% -5%,rgba(0,60,48,.4),transparent 55%),radial-gradient(110% 60% at 50% 105%,rgba(0,40,55,.34),transparent 55%);pointer-events:none;z-index:1"></div>
   <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,136,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.045) 1px,transparent 1px);background-size:54px 54px;pointer-events:none;z-index:1;-webkit-mask-image:radial-gradient(125% 90% at 50% 42%,#000,transparent 86%);mask-image:radial-gradient(125% 90% at 50% 42%,#000,transparent 86%)"></div>
@@ -221,26 +221,33 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 // ---- responsive scaling: fit the 1080x1920 stage to the viewport ----
 (function(){
   var scaler = document.getElementById('scaler');
+  var poster = document.getElementById('poster');
+  var stage  = document.getElementById('stage');
   function fit(){
     var vw = window.innerWidth, vh = window.innerHeight;
-    var scaleFit = Math.min(vw / 1080, vh / 1920);   // fully visible, no scroll
-    var s;
-    if (vw >= 900) {
-      // desktop / large landscape: zoom in for a big, prominent look.
-      // poster grows to ~60% of the screen width and the page scrolls vertically.
-      s = Math.max(scaleFit, Math.min(vw * 0.6 / 1080, vh / 1920 * 1.6));
+    var s, designH;
+    if (vw / vh <= 1080 / 1920) {
+      // Device is TALLER/narrower than the poster (phones — iPhone, Samsung, … ):
+      // fill the full width, then stretch the poster's height to the device so it
+      // covers the whole screen edge-to-edge with no empty margins and no scroll.
+      s = vw / 1080;
+      designH = Math.max(1920, Math.ceil(vh / s));
     } else {
-      // phones & small tablets: keep the whole poster visible
-      s = scaleFit;
+      // Device is WIDER than the poster (computers, landscape & many tablets):
+      // a portrait card can't fill a wide screen without cropping, so fill the
+      // full height (top & bottom borders) and let the matrix background reach
+      // the left/right borders. Fully visible, no scroll.
+      s = vh / 1920;
+      designH = 1920;
     }
+    poster.style.height = designH + 'px';
     scaler.style.transform = 'scale(' + s + ')';
-    var sw = 1080 * s, sh = 1920 * s;
-    var stage = document.getElementById('stage');
+    var sw = 1080 * s, sh = designH * s;
     stage.style.width = sw + 'px';
     stage.style.height = sh + 'px';
-    // center vertically when it fits; pin to top (scrollable) when it's taller
     stage.style.marginTop = Math.max(0, (vh - sh) / 2) + 'px';
-    stage.style.marginBottom = (sh > vh ? 28 : 0) + 'px';
+    // resize the in-poster matrix to the new height
+    if (window.__resizeBg) window.__resizeBg();
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
@@ -284,17 +291,22 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
   else if(n>0){ setTimeout(function(){ tryLucide(n-1); }, 120); }
 })(50);
 
-// ---- matrix rain background ----
+// ---- matrix rain background (fills the poster's current, flexible height) ----
 (function startBg(){
   var c = document.getElementById('bgCanvas'); if(!c) return;
   var ctx = c.getContext('2d');
   var dpr = Math.min(window.devicePixelRatio||1, 2);
-  var W=1080, H=1920;
-  c.width=W*dpr; c.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  var fs=16, cols=Math.floor(W/fs);
-  var drops=Array.from({length:cols},function(){return Math.random()*-H;});
+  var W=1080, H=1920, fs=16, cols, drops;
   var chars='01<>{}[]#%$&/ABCDEFｱｶｻﾀﾅﾊﾏ10x';
-  ctx.fillStyle='#04070A'; ctx.fillRect(0,0,W,H);
+  function resize(){
+    H = c.clientHeight || 1920;
+    c.width=W*dpr; c.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    cols = Math.floor(W/fs);
+    if(!drops || drops.length!==cols) drops=Array.from({length:cols},function(){return Math.random()*-H;});
+    ctx.fillStyle='#04070A'; ctx.fillRect(0,0,W,H);
+  }
+  window.__resizeBg = resize;
+  resize();
   function draw(){
     ctx.fillStyle='rgba(4,7,10,0.09)'; ctx.fillRect(0,0,W,H);
     ctx.font=fs+"px 'JetBrains Mono', monospace";
