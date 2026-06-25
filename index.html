@@ -16,6 +16,10 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#04070A;height:100%}
 body{display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;overflow:hidden}
+/* full-bleed cyber background that fills the entire viewport on any device */
+#bgFull{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.14;pointer-events:none}
+#bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,transparent 38%,rgba(2,4,6,.82) 100%)}
+#stage{position:relative;z-index:1}
 #scaler{position:relative;width:1080px;height:1920px;transform-origin:top left}
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes sweepDown{0%{top:-200px}100%{top:1980px}}
@@ -26,6 +30,8 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;min
 </style>
 </head>
 <body>
+<canvas id="bgFull"></canvas>
+<div id="bgVignette"></div>
 <div id="stage">
 <div id="scaler">
 <div style="width:1080px;height:1920px;position:relative;background:#04070A;overflow:hidden;font-family:'Chakra Petch',sans-serif;color:#EAFBFF">
@@ -223,7 +229,39 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;min
     stage.style.height = (1920 * s) + 'px';
   }
   window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
   fit();
+})();
+
+// ---- full-bleed matrix background covering the whole viewport (all devices) ----
+(function startBgFull(){
+  var c = document.getElementById('bgFull'); if(!c) return;
+  var ctx = c.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio||1, 2);
+  var W, H, fs=18, cols, drops;
+  var chars='01<>{}[]#%$&/ABCDEFｱｶｻﾀﾅﾊﾏ10x';
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    c.width=W*dpr; c.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    cols = Math.floor(W/fs);
+    drops = Array.from({length:cols},function(){return Math.random()*-H;});
+    ctx.fillStyle='#04070A'; ctx.fillRect(0,0,W,H);
+  }
+  function draw(){
+    ctx.fillStyle='rgba(4,7,10,0.10)'; ctx.fillRect(0,0,W,H);
+    ctx.font=fs+"px 'JetBrains Mono', monospace";
+    for(var i=0;i<cols;i++){
+      var ch=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillStyle = Math.random()>0.965 ? 'rgba(0,229,255,0.85)' : 'rgba(0,255,136,0.5)';
+      ctx.fillText(ch, i*fs, drops[i]);
+      drops[i]+=fs*0.9;
+      if(drops[i]>H && Math.random()>0.975) drops[i]=Math.random()*-220;
+    }
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
+  (function loop(){ draw(); requestAnimationFrame(loop); })();
 })();
 
 // ---- lucide icons ----
