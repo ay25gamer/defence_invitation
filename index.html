@@ -219,6 +219,27 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 </div>
 
 <script>
+// ---- performance config: keep canvas animations light on phones so the page
+//      stays smooth and never overloads the GPU/memory (e.g. while zooming) ----
+var LOW = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches)
+          || Math.min(window.innerWidth, window.innerHeight) < 820;
+var CDPR = LOW ? 1 : Math.min(window.devicePixelRatio || 1, 2);  // canvas pixel density
+var FRAME = LOW ? 1000 / 30 : 1000 / 60;                          // throttle to ~30fps on mobile
+var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Run a draw() in a throttled, visibility-aware loop. Returns nothing.
+function animate(draw){
+  if (REDUCED){ draw(); return; }            // honor reduced-motion: one static frame
+  var last = 0;
+  function loop(ts){
+    requestAnimationFrame(loop);
+    if (document.hidden) return;             // pause when tab/app not visible
+    if (ts - last < FRAME) return;           // cap frame rate
+    last = ts;
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+
 // ---- responsive scaling: fit the 1080x1920 stage to the viewport ----
 (function(){
   var scaler = document.getElementById('scaler');
@@ -273,7 +294,7 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 (function startBgFull(){
   var c = document.getElementById('bgFull'); if(!c) return;
   var ctx = c.getContext('2d');
-  var dpr = Math.min(window.devicePixelRatio||1, 2);
+  var dpr = CDPR;
   var W, H, fs=18, cols, drops;
   var chars='01<>{}[]#%$&/ABCDEFｱｶｻﾀﾅﾊﾏ10x';
   function resize(){
@@ -297,7 +318,7 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
   resize();
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', resize);
-  (function loop(){ draw(); requestAnimationFrame(loop); })();
+  animate(draw);
 })();
 
 // ---- lucide icons ----
@@ -310,7 +331,7 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
 (function startBg(){
   var c = document.getElementById('bgCanvas'); if(!c) return;
   var ctx = c.getContext('2d');
-  var dpr = Math.min(window.devicePixelRatio||1, 2);
+  var dpr = CDPR;
   var W=1080, H=1920, fs=16, cols, drops;
   var chars='01<>{}[]#%$&/ABCDEFｱｶｻﾀﾅﾊﾏ10x';
   function resize(){
@@ -333,14 +354,14 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
       if(drops[i]>H && Math.random()>0.975) drops[i]=Math.random()*-220;
     }
   }
-  (function loop(){ draw(); requestAnimationFrame(loop); })();
+  animate(draw);
 })();
 
 // ---- live threat-map network ----
 (function startNet(){
   var c=document.getElementById('netCanvas'); if(!c) return;
   var ctx=c.getContext('2d');
-  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var dpr=CDPR;
   var W=c.clientWidth||300, H=c.clientHeight||220;
   c.width=W*dpr; c.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
   var N=22;
@@ -370,7 +391,7 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
     }
     t++;
   }
-  (function loop(){ draw(); requestAnimationFrame(loop); })();
+  animate(draw);
 })();
 </script>
 </body>
