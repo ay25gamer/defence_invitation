@@ -15,7 +15,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#04070A;height:100%}
-body{display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;overflow:hidden}
+body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-y:auto}
 /* full-bleed cyber background that fills the entire viewport on any device */
 #bgFull{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:.14;pointer-events:none}
 #bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,transparent 38%,rgba(2,4,6,.82) 100%)}
@@ -222,11 +222,25 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;min
 (function(){
   var scaler = document.getElementById('scaler');
   function fit(){
-    var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var scaleFit = Math.min(vw / 1080, vh / 1920);   // fully visible, no scroll
+    var s;
+    if (vw >= 900) {
+      // desktop / large landscape: zoom in for a big, prominent look.
+      // poster grows to ~60% of the screen width and the page scrolls vertically.
+      s = Math.max(scaleFit, Math.min(vw * 0.6 / 1080, vh / 1920 * 1.6));
+    } else {
+      // phones & small tablets: keep the whole poster visible
+      s = scaleFit;
+    }
     scaler.style.transform = 'scale(' + s + ')';
+    var sw = 1080 * s, sh = 1920 * s;
     var stage = document.getElementById('stage');
-    stage.style.width = (1080 * s) + 'px';
-    stage.style.height = (1920 * s) + 'px';
+    stage.style.width = sw + 'px';
+    stage.style.height = sh + 'px';
+    // center vertically when it fits; pin to top (scrollable) when it's taller
+    stage.style.marginTop = Math.max(0, (vh - sh) / 2) + 'px';
+    stage.style.marginBottom = (sh > vh ? 28 : 0) + 'px';
   }
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
