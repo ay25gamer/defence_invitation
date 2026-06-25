@@ -233,9 +233,12 @@ var LOW = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches)
 var CDPR = LOW ? 1 : Math.min(window.devicePixelRatio || 1, 2);  // canvas pixel density
 var FRAME = LOW ? 1000 / 30 : 1000 / 60;                          // throttle to ~30fps on mobile
 var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// Run a draw() in a throttled, visibility-aware loop. Returns nothing.
+// Run a draw() loop. On phones (or reduced-motion) we render a STATIC frame
+// instead of animating: a continuously repainting full-screen canvas is what
+// overwhelms mobile GPUs (iOS Safari especially) and crashes the page on zoom.
+// Desktops get the full throttled, visibility-aware animation.
 function animate(draw){
-  if (REDUCED){ draw(); return; }            // honor reduced-motion: one static frame
+  if (REDUCED || LOW){ for (var k=0;k<64;k++) draw(); return; }   // static on mobile
   var last = 0;
   function loop(ts){
     requestAnimationFrame(loop);
@@ -310,6 +313,7 @@ function animate(draw){
     cols = Math.floor(W/fs);
     drops = Array.from({length:cols},function(){return Math.random()*-H;});
     ctx.fillStyle='#04070A'; ctx.fillRect(0,0,W,H);
+    if (LOW || REDUCED){ for (var k=0;k<64;k++) draw(); }   // repaint static field
   }
   function draw(){
     ctx.fillStyle='rgba(4,7,10,0.10)'; ctx.fillRect(0,0,W,H);
@@ -347,6 +351,7 @@ function animate(draw){
     cols = Math.floor(W/fs);
     if(!drops || drops.length!==cols) drops=Array.from({length:cols},function(){return Math.random()*-H;});
     ctx.fillStyle='#04070A'; ctx.fillRect(0,0,W,H);
+    if (LOW || REDUCED){ for (var k=0;k<64;k++) draw(); }   // repaint static field
   }
   window.__resizeBg = resize;
   resize();
