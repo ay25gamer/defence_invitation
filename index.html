@@ -28,6 +28,10 @@ body{display:flex;align-items:flex-start;justify-content:center;min-height:100vh
    translucent backgrounds. */
 @media (pointer:coarse){
   [style*="backdrop-filter"]{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  /* stop all keyframe animations on touch devices: continuously animating
+     elements become GPU layers that get re-rasterized (and can crash Safari)
+     when the page is pinch-zoomed. */
+  *,*::before,*::after{ animation:none !important; transition:none !important; }
 }
 @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
 @keyframes sweepDown{0%{top:-200px}100%{top:1980px}}
@@ -302,6 +306,7 @@ function animate(draw){
 
 // ---- full-bleed matrix background covering the whole viewport (all devices) ----
 (function startBgFull(){
+  if (LOW) return;   // phones: no full-screen canvas (memory-heavy under zoom)
   var c = document.getElementById('bgFull'); if(!c) return;
   var ctx = c.getContext('2d');
   var dpr = CDPR;
@@ -340,6 +345,7 @@ function animate(draw){
 
 // ---- matrix rain background (fills the poster's current, flexible height) ----
 (function startBg(){
+  if (LOW) return;   // phones: no poster matrix canvas (memory-heavy under zoom)
   var c = document.getElementById('bgCanvas'); if(!c) return;
   var ctx = c.getContext('2d');
   var dpr = CDPR;
@@ -371,6 +377,7 @@ function animate(draw){
 
 // ---- live threat-map network ----
 (function startNet(){
+  if (LOW) return;   // phones: no canvases at all, for a rock-solid static page
   var c=document.getElementById('netCanvas'); if(!c) return;
   var ctx=c.getContext('2d');
   var dpr=CDPR;
